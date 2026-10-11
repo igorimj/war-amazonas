@@ -1,0 +1,11 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>WAR: Amazonas</title><link rel="stylesheet" href="css/style.css"></head><body>
+<div id="setup"><h1>WAR: Amazonas</h1>
+<label>Humanos (hot-seat) <select id="nh"></select> Bots <select id="nb"></select> <small>(total 2–6)</small></label>
+<div id="rows"></div><label>Velocidade dos bots <select id="spd"><option value="900">Lenta</option><option value="450" selected>Normal</option><option value="120">Rápida</option></select></label>
+<button class="go" id="start">Iniciar partida (local)</button> <button id="online">🌐 Jogar online</button>
+<p><small>Mapa extraído da imagem de referência; polígonos e adjacências editáveis no objeto <code>MAP</code>.</small></p></div>
+<div id="lobby" style="display:none"></div>
+<div id="game"><div id="mapw"><svg id="svg" viewBox="0 0 1475 1066"></svg><div id="modal"></div><div id="toast"></div><div id="banner"></div><div id="dicebox"></div><div id="neg"></div><div id="fort"><div class="fb"><button id="fx" class="x">✕</button><div class="cl"><button id="fm">−</button><small>0</small></div><div class="num"><b id="fpend">0</b><span id="fcur">1</span></div><div class="cl"><button id="fp">+</button><small id="fmax">0</small></div><button id="fo" class="ok">✓</button></div><div class="ft">FORTIFICAR</div><div class="hint">Mantenha pressionado para acelerar o envio de tropas</div></div><div class="zb"><button id="zi">+</button><button id="zo">−</button><button id="zr">⌂</button></div></div>
+<div id="side"><div id="info"></div><div id="spec"></div><div id="players"></div><div class="dice" id="dice"></div>
+<div class="row"><button id="next">Próxima fase</button><button id="obj">Meu objetivo</button><button id="negb" style="display:none">🤝 Negociar</button></div><div id="objtxt"></div><div id="log"></div></div></div>
+<script src="js/map-data.js"></script><script src="js/game.js"></script><script src="js/net.js"></script></body></html>
