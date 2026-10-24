@@ -2,6 +2,16 @@
   "name": "war-amazonas",
   "version": "1.0.0",
   "private": true,
-  "scripts": { "dev": "wrangler dev", "deploy": "wrangler deploy" },
-  "devDependencies": { "wrangler": "^4.0.0" }
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node tests/industrial.test.js && node tests/city.test.js && node tests/symbols.test.js && node tests/integration.test.js",
+    "test:online": "node tests/online.smoke.js && node tests/online.city.js && node tests/online.symbols.js && node tests/online.e2e.js",
+    "build:single": "node scripts/build-single.js > war-amazonas.html"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "wrangler": "^4.151.2",
+    "ws": "^8.18.0"
+  }
 }
