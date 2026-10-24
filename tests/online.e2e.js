@@ -1,0 +1,21 @@
+// Dois clientes (jsdom) + servidor local: node tests/online.e2e.js [porta]
+const {JSDOM}=require("jsdom"),fs=require("fs"),path=require("path"),WS=require("ws"),assert=require("node:assert/strict");
+const PORT=process.argv[2]||8787,base=path.join(__dirname,"../public/");
+let html=fs.readFileSync(base+"index.html","utf8").replace(/<script src="([^"]+)"><\/script>/g,(m,s)=>"<script>"+fs.readFileSync(base+s,"utf8").replace(/<\/script>/g,"<\\/script>")+"</script>");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)),errs=[];
+const mk=n=>{const dom=new JSDOM(html,{runScripts:"dangerously",url:`http://localhost:${PORT}/`,pretendToBeVisual:true,beforeParse(w){w.alert=()=>{};w.WebSocket=WS;w.addEventListener("error",e=>errs.push(n+": "+e.message))}});return dom.window};
+(async()=>{let ok=0;const T=(n,c)=>{assert.ok(c,n);ok++;console.log("  ✔",n)};
+ const A=mk("A"),B=mk("B"),room="E"+Math.floor(Math.random()*9000+1000);
+ A.eval(`netJoin("${room}","Ana")`);await sleep(400);B.eval(`netJoin("${room}","Beto")`);await sleep(400);
+ A.document.getElementById("lm").value="ind";A.document.getElementById("lm").dispatchEvent(new A.Event("change"));A.document.getElementById("lb").value="0";A.document.getElementById("lb").dispatchEvent(new A.Event("change"));await sleep(300);
+ A.document.getElementById("lstart").click();await sleep(1200);
+ const g=w=>w.eval("G");T("os dois clientes iniciaram em modo Guerra Industrial",g(A)&&g(B)&&g(A).mode==="ind"&&g(B).mode==="ind");
+ const cur=g(A).cur,W=g(A).P[cur].mine?A:B,O=W===A?B:A;
+ const money0=W.eval("G.eco.players[G.cur].money"),n=W.eval("mine(G.cur).length");T("receita da rodada creditada pelo servidor",money0===2000+n*100);
+ const t=W.eval("mine(G.cur)[0]");const r=await W.eval(`ecoAct({type:"build",t:${t},cat:"commerce"})`);await sleep(300);
+ T("ação econômica validada e refletida nos dois clientes",r.ok&&O.eval(`G.eco.ind[${t}].commerce.int`)===3&&O.eval("G.eco.players[G.cur].money")===money0-350);
+ const bad=await W.eval(`ecoAct({type:"build",t:${t},cat:"commerce"})`);T("construção repetida recusada com motivo",!bad.ok&&/Já existe/.test(bad.reason));
+ const r2=await O.eval(`(()=>{G.cur=G.cur;return ecoAct({type:"buy",res:"food",n:1})})()`);T("jogador fora da vez recusado pelo servidor",!r2.ok);
+ W.eval("G.pool=0;advance();advance();advance()");await sleep(900);
+ T("turno passou ao outro jogador e a economia dele foi processada uma vez",O.eval("G.cur")!==cur&&O.eval("G.eco.players[G.cur].lastRound")===O.eval("G.round")&&O.eval("G.eco.players[G.cur].money")===2000+O.eval("mine(G.cur).length")*100);
+ T("sem erros de script",errs.length===0);console.log(`\n${ok} verificações ponta a ponta passaram`,errs.length?errs:"");process.exit(0)})().catch(e=>{console.error("✘",e.message,errs);process.exit(1)});

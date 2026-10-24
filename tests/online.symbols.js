@@ -1,0 +1,23 @@
+// Dois clientes (jsdom) + servidor local no modo Cidade: etapa de desenho simultânea. node tests/online.symbols.js [porta]
+const {JSDOM}=require("jsdom"),fs=require("fs"),path=require("path"),WS=require("ws"),assert=require("node:assert/strict");
+const PORT=process.argv[2]||8787,base=path.join(__dirname,"../public/");
+let html=fs.readFileSync(base+"index.html","utf8").replace(/<script src="([^"]+)"><\/script>/g,(m,s)=>"<script>"+fs.readFileSync(base+s,"utf8").replace(/<\/script>/g,"<\\/script>")+"</script>");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)),errs=[];
+const mk=n=>new JSDOM(html,{runScripts:"dangerously",url:`http://localhost:${PORT}/`,pretendToBeVisual:true,beforeParse(w){w.alert=()=>{};w.WebSocket=WS;w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},getImageData(){return {data:new Uint8ClampedArray(4)}},putImageData(){},beginPath(){},arc(){},fill(){},moveTo(){},lineTo(){},stroke(){},fillText(){},ellipse(){},closePath(){}});w.HTMLCanvasElement.prototype.toDataURL=()=>"data:image/png;base64,iVBORw0KGgo=";w.addEventListener("error",e=>errs.push(n+": "+e.message))}}).window;
+(async()=>{let ok=0;const T=(n,c)=>{assert.ok(c,n);ok++;console.log("  ✔",n)};
+ const A=mk("A"),B=mk("B"),room="S"+Math.floor(Math.random()*9000+1000);
+ A.eval(`netJoin("${room}","Ana")`);await sleep(400);B.eval(`netJoin("${room}","Beto")`);await sleep(400);
+ A.document.getElementById("lm").value="city";A.document.getElementById("lm").dispatchEvent(new A.Event("change"));A.document.getElementById("lb").value="1";A.document.getElementById("lb").dispatchEvent(new A.Event("change"));await sleep(300);
+ A.document.getElementById("lstart").click();await sleep(1300);
+ const sh=w=>w.document.getElementById("symstage").style.display==="flex";
+ T("os dois clientes entram na etapa de desenho (cidade, 2 humanos + 1 bot)",sh(A)&&sh(B)&&A.eval("G.mode")==="city"&&A.eval("G.drawing")===true);
+ T("o fundo do editor é a cor do próprio jogador",(()=>{const bg=w=>w.document.querySelector(".symbox").style.background;return !!bg(A)&&!!bg(B)&&bg(A)!==bg(B)})());
+ T("nenhum bot joga enquanto os jogadores desenham",A.eval("busy")===false&&B.eval("busy")===false);
+ A.document.querySelector('[data-tool="stamp"]').click();A.document.getElementById("symcv").dispatchEvent(new A.Event("pointerdown"));A.document.getElementById("symdone").click();await sleep(300);
+ T("depois de enviar, aparece 'aguardando os outros'",/Aguardando/.test(A.document.getElementById("symstage").innerHTML)&&sh(B));
+ B.document.getElementById("symskip").click();await sleep(600);
+ T("com todos prontos a tela de jogo é liberada nos dois",!sh(A)&&!sh(B));
+ const ia=A.eval("G.P.findIndex(p=>p.mine)");
+ T("o símbolo de quem desenhou aparece como plano de fundo nos territórios dele, nos dois clientes",A.document.querySelectorAll("#syms image").length>0&&A.document.querySelectorAll("#syms image").length===B.document.querySelectorAll("#syms image").length&&[...B.document.querySelectorAll("#syms image")].every(im=>B.eval(`G.own[${im.dataset.t}]`)===ia));
+ T("quem pulou fica só com a cor",B.eval("SYMS[G.P.findIndex(p=>p.mine)]")===undefined);
+ T("sem erros de script",errs.length===0);console.log(`\n${ok} verificações dos símbolos (online) passaram`,errs.length?errs:"");process.exit(0)})().catch(e=>{console.error("✘",e.message,errs);process.exit(1)});
